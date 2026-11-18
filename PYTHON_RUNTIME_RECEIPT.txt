@@ -1,0 +1,14 @@
+Artifact: portable CPython runtime for AI Vault One-Click
+Distribution project: https://github.com/astral-sh/python-build-standalone
+Distribution release: 20260901
+Distribution commit: 4bb01f09aaf362c71e891be4a41cb6d6ddf830b3
+CPython version: 3.12.14
+Platform: aarch64-apple-darwin
+Archive: cpython-3.12.14+20260901-aarch64-apple-darwin-install_only.tar.gz
+Archive size: 25135464 bytes
+SHA-256: 3ee3ee547cedfeb7c2b16b2b7156039f7b470bb8f857e226fd3d2eb11db83c76
+Release published: 2026-09-01T17:48:48Z
+Archived and tested: 2026-09-24
+Installation behavior: none; relocatable runtime invoked from inside package
+Package manager use: none
+Network use by AI Vault: none

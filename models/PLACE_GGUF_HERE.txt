@@ -1,0 +1,5 @@
+Place one compatible, authorized text-model .gguf file in this folder.
+
+The emergency kit does not download, bundle, or choose model weights for you.
+Check the model's license, provenance, hardware requirements, and checksum
+before use. For an initial test, prefer a small quantized text model.

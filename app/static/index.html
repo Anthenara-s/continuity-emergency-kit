@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anthenara AI Vault · Emergency Local Chat</title>
+  <style>
+    :root { color-scheme: dark; --bg:#07121c; --panel:#0f2130; --line:#31536a; --text:#f6f2e8; --muted:#aec2ce; --gold:#d7a355; --blue:#72c6e8; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; background:radial-gradient(circle at 80% 10%,#12354c 0,transparent 42%),var(--bg); color:var(--text); font:18px/1.55 ui-sans-serif,system-ui,sans-serif; }
+    main { width:min(1120px,calc(100% - 32px)); margin:auto; padding:38px 0 56px; }
+    header { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; margin-bottom:24px; }
+    h1 { font:clamp(2rem,6vw,4.5rem)/.98 Georgia,serif; margin:.15em 0; max-width:850px; }
+    h2 { font:1.5rem/1.2 Georgia,serif; margin:0 0 16px; }
+    p { margin:.4em 0; }
+    .eyebrow,.status { color:var(--gold); letter-spacing:.12em; text-transform:uppercase; font-size:.78rem; font-weight:700; }
+    .badge { border:1px solid var(--line); border-radius:999px; padding:8px 12px; color:var(--blue); white-space:nowrap; }
+    .grid { display:grid; grid-template-columns:minmax(260px,340px) 1fr; gap:18px; }
+    .panel { background:color-mix(in srgb,var(--panel) 90%,transparent); border:1px solid var(--line); border-radius:18px; padding:20px; box-shadow:0 18px 50px #0005; }
+    label { display:block; margin:14px 0 6px; font-weight:700; }
+    select,textarea,button { width:100%; font:inherit; color:var(--text); background:#091824; border:1px solid var(--line); border-radius:10px; padding:12px; }
+    button { cursor:pointer; background:#17394c; font-weight:750; }
+    button:hover,button:focus-visible { border-color:var(--gold); outline:2px solid transparent; }
+    button.primary { background:var(--gold); color:#07121c; border-color:var(--gold); }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    .small { color:var(--muted); font-size:.88rem; }
+    .files { display:grid; gap:10px; margin-top:14px; }
+    .file { padding:12px; background:#091824; border:1px solid #28485c; border-radius:10px; word-break:break-word; }
+    .file button { margin-top:8px; padding:7px; font-size:.85rem; }
+    #messages { min-height:420px; max-height:58vh; overflow:auto; display:flex; flex-direction:column; gap:12px; padding-bottom:14px; }
+    .message { max-width:88%; padding:12px 14px; border-radius:14px; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .user { align-self:flex-end; background:#244b61; }
+    .assistant { align-self:flex-start; background:#172c3b; border:1px solid #31536a; }
+    .notice { padding:10px 12px; background:#2b2515; border:1px solid #705d2d; border-radius:10px; color:#f5d999; }
+    textarea { min-height:100px; resize:vertical; margin:12px 0; }
+    .actions { display:grid; grid-template-columns:1fr auto; gap:10px; }
+    .actions button:last-child { width:auto; min-width:140px; }
+    @media (max-width:760px) { header,.grid { display:block; } .badge { display:inline-block; margin-top:12px; } .panel { margin-bottom:16px; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div><div class="eyebrow">Anthenara AI Vault</div><h1>Emergency Local Chat</h1><p class="small">A quiet, provider-independent window into models already held on this computer.</p></div>
+    <div class="badge">Loopback only · no telemetry</div>
+  </header>
+  <div class="grid">
+    <aside class="panel">
+      <h2>Local carriers</h2>
+      <button id="refresh">Refresh discovery</button>
+      <label for="backend">Runtime</label><select id="backend"></select>
+      <label for="model">Model</label><select id="model"></select>
+      <p id="runtimeStatus" class="small" aria-live="polite"></p>
+      <h2 style="margin-top:28px">GGUF files</h2>
+      <p class="small">Discovered files are not loaded automatically.</p>
+      <div id="files" class="files"></div>
+    </aside>
+    <section class="panel">
+      <div id="notice" class="notice">Model discovery is not identity continuity. Verify the carrier and provenance before importing any continuity.</div>
+      <div id="messages" aria-live="polite" aria-label="Conversation"></div>
+      <label for="prompt">Message</label>
+      <textarea id="prompt" placeholder="Write a message to the selected local model…"></textarea>
+      <div class="actions"><button id="clear">Clear this page</button><button id="send" class="primary">Send locally</button></div>
+    </section>
+  </div>
+</main>
+<script>
+const backend = document.querySelector('#backend'), model = document.querySelector('#model'), files = document.querySelector('#files');
+const status = document.querySelector('#runtimeStatus'), messages = document.querySelector('#messages'), prompt = document.querySelector('#prompt'), send = document.querySelector('#send');
+let state = null, history = [];
+function text(tag, value, cls='') { const node=document.createElement(tag); node.textContent=value; if(cls) node.className=cls; return node; }
+function renderMessage(role, content) { const node=text('div',content,`message ${role}`); messages.append(node); messages.scrollTop=messages.scrollHeight; }
+function updateModels() { const selected=state?.backends.find(item=>item.id===backend.value); model.replaceChildren(); for(const name of selected?.models||[]) { const option=text('option',name); option.value=name; model.append(option); } status.textContent=selected?.available ? `${selected.name} is available · ${selected.models.length} model(s)` : 'No active local runtime was detected.'; send.disabled=!selected?.available||!model.value; }
+function render() { backend.replaceChildren(); for(const item of state.backends) { const option=text('option',`${item.name}${item.available?'':' · unavailable'}`); option.value=item.id; option.disabled=!item.available; backend.append(option); } const first=state.backends.find(item=>item.available); if(first) backend.value=first.id; else { const option=text('option','No local runtime detected'); option.value=''; option.selected=true; backend.prepend(option); } updateModels(); files.replaceChildren(); if(!state.modelFiles.length) files.append(text('p','No GGUF files found in the configured folders.','small')); for(const item of state.modelFiles) { const card=text('div','', 'file'); card.append(text('strong',item.name),text('div',`${(item.sizeBytes/1073741824).toFixed(2)} GB · ${item.path}`,'small')); const button=text('button',state.llamaServerInstalled?'Start with llama.cpp':'llama-server not installed'); button.disabled=!state.llamaServerInstalled; button.onclick=()=>launch(item.id,button); card.append(button); files.append(card); } }
+async function refresh() { status.textContent='Looking for local runtimes…'; const response=await fetch('/api/status',{cache:'no-store'}); state=await response.json(); render(); }
+async function launch(id,button) { button.disabled=true; button.textContent='Starting…'; try { const response=await fetch('/api/launch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modelId:id})}); const result=await response.json(); if(!response.ok) throw new Error(result.error); await refresh(); backend.value='llama-cpp'; updateModels(); } catch(error) { status.textContent=error.message; button.disabled=false; button.textContent='Try again'; } }
+async function submit() { const content=prompt.value.trim(); if(!content||send.disabled) return; history.push({role:'user',content}); renderMessage('user',content); prompt.value=''; send.disabled=true; try { const response=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({backendId:backend.value,model:model.value,messages:history})}); const result=await response.json(); if(!response.ok) throw new Error(result.error); history.push({role:'assistant',content:result.content}); renderMessage('assistant',result.content); } catch(error) { renderMessage('assistant',`Local runtime error: ${error.message}`); } finally { updateModels(); prompt.focus(); } }
+backend.onchange=updateModels; model.onchange=updateModels; document.querySelector('#refresh').onclick=refresh; send.onclick=submit; document.querySelector('#clear').onclick=()=>{history=[];messages.replaceChildren();prompt.focus();}; prompt.onkeydown=event=>{if((event.metaKey||event.ctrlKey)&&event.key==='Enter') submit();};
+refresh().catch(error=>{status.textContent=`Discovery failed: ${error.message}`;});
+</script>
+</body>
+</html>

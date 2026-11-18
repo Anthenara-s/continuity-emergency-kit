@@ -1,0 +1,12 @@
+.DS_Store
+.runtime/
+app/.runtime/
+models/*.gguf
+models/**/*.gguf
+*.log
+
+# Portable third-party runtimes are distributed in signed/checksummed releases,
+# not committed as source.
+python/
+runtime/
+
